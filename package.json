@@ -1,0 +1,25 @@
+{
+  "name": "js-extra-beautify",
+  "version": "0.0.1",
+  "description": "Additional pre-organization for obfuscated/minified JS.",
+  "main": "jeb.js",
+  "dependencies": {
+    "escodegen": "^1.6.1",
+    "falafel": "^1.0.0",
+    "cssauron-falafel": "^1.2.1"
+  },
+  "devDependencies": {
+    "chai": "^2.0.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "js",
+    "beautify",
+    "beautifier",
+    "uglify"
+  ],
+  "author": "Chris Hunt",
+  "license": "MIT"
+}
