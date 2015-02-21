@@ -3,12 +3,14 @@ var name = require('./name');
 
 module.exports = {
   'return > sequence': rewrite_return_sequence,
-  'expr > ternary': rewrite_expr_ternary
+  'expr > ternary': rewrite_expr_ternary,
+  'expr > binary': rewrite_expr_binary
 };
 
 // Fix case where there is a sequence with a parent return statement.
 function rewrite_return_sequence(node) {
   var parent = node.parent;
+  if (!check_context(parent)) return;
   var context = parent.parent.body;
   var start = context.indexOf(parent);
   var return_expr = node.expressions.pop();
@@ -25,9 +27,11 @@ function rewrite_return_sequence(node) {
 // Rewrite standalone short-circuit operators.
 function rewrite_expr_binary(node) {
   var parent = node.parent;
-  var context = parent.parent;
-  var start = context.body.indexOf(parent);
-  context.body[start] = write_expr_binary(node);
+  if (!check_context(parent)) return;
+  var context = parent.parent.body;
+  var start = context.indexOf(parent);
+  context[start] = util_handle_arbitrary_expr(node);
+  parent.parent.update(escodegen.generate(parent.parent));
 }
 
 function rewrite_expr_ternary(node) {
@@ -52,10 +56,8 @@ function check_context(node) {
   // BlockStatement
   if (name[parent.type] == 'block') {
     return true;
-  } else {
-    console.log("BROKE");
-    return false;
   }
+  return false;
 }
 
 // Wrap an expression in an expression statement.
@@ -83,15 +85,6 @@ function util_if_statement(test, consequent, alternate) {
     "consequent": consequent,
     "alternate": alternate
   }
-}
-
-function write_expr_binary(node) {
-  return util_if_statement(
-    node.left,
-    util_wrap_block_statement(
-      util_handle_arbitrary_node(
-        node.right,
-        [])));
 }
 
 // Does conversions and take actions when node is not related directly
@@ -122,12 +115,22 @@ var ParseExpr = {
    * @return {ESNode} - The constructed if statement.     [description]
    */
   binary: function(node) {
-    return util_if_statement(
-      node.left,
-      util_wrap_block_statement(
-        util_handle_arbitrary_expr(
-          node.right,
-          [])));
+    var consequent;
+    var consequent_statements = [];
+    var c_node = util_handle_arbitrary_expr(
+      node.right,
+      consequent_statements);
+    if (c_node) {
+      if (util_is_expr(c_node)) {
+        consequent_statements = [util_wrap_expression(c_node)];
+        consequent = util_wrap_block_statement(consequent_statements);
+      } else {
+        consequent = c_node;
+      }
+    } else {
+      consequent = util_wrap_block_statement(consequent_statements);
+    }
+    return util_if_statement(node.left, consequent);
   },
 
   /**
@@ -137,10 +140,34 @@ var ParseExpr = {
    * @param {Array} output - The array to output to.
    */
   sequence: function(node, output) {
+    var top_level = node.expressions.map(function(expr) {
+      var this_level = [];
+      var this_node = util_handle_arbitrary_expr(
+        expr,
+        this_level);
+      if (this_node) {
+        if (util_is_expr(this_node)) {
+          this_level = [util_wrap_expression(this_node)];
+        } else {
+          this_level = this_node;
+        }
+      } else {
+        this_level = this_level.map(function(elt) {
+          if (util_is_expr(elt)) {
+            return util_wrap_expression(elt);
+          } else {
+            return elt;
+          }
+        });
+      }
+      return this_level;
+    });
+    // Flatten arrays.
+    top_level = Array.prototype.concat.apply([], top_level);
     // All sequences have expressions as children.
     Array.prototype.push.apply(
       output,
-      node.expressions.map(util_wrap_expression));
+      top_level);
   },
 
   /**
