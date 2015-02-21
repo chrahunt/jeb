@@ -3,9 +3,38 @@ var name = require('./name');
 
 module.exports = {
   'return > sequence': rewrite_return_sequence,
+  'expr > sequence': rewrite_expr_sequence,
   'expr > ternary': rewrite_expr_ternary,
   'expr > binary': rewrite_expr_binary
 };
+
+// Takes a node and parses its relevant AST properly for output.
+function ast_output(node) {
+  // List of properties to ignore.
+  var bad = [
+    'start',
+    'end',
+    'parent',
+    'source'
+  ];
+  if (typeof node !== "object" && typeof node !== "function")
+    return node;
+  var newNode = {};
+  for (var prop in node) {
+    if (bad.indexOf(prop) !== -1) continue;
+    var val = node[prop];
+    
+    // Only keep update if it is a node.
+    if (prop == "update" && typeof val.type !== "string") continue;
+    if (val instanceof Array) {
+      val = val.map(ast_output);
+    } else if (val && val.type) {
+      val = ast_output(val);
+    }
+    newNode[prop] = val;
+  }
+  return newNode;
+}
 
 // Fix case where there is a sequence with a parent return statement.
 function rewrite_return_sequence(node) {
@@ -21,6 +50,19 @@ function rewrite_return_sequence(node) {
     [start, 0].concat(output));
   // Rewrite return statement.
   parent.argument = return_expr;
+  parent.parent.update(escodegen.generate(parent.parent));
+}
+
+function rewrite_expr_sequence(node) {
+  var parent = node.parent;
+  if (!check_context(parent)) return;
+  var context = parent.parent.body;
+  var start = context.indexOf(parent);
+  // Put expressions into parent context.
+  var output = [];
+  ParseExpr[name[node.type]].call(null, node, output);
+  Array.prototype.splice.apply(context,
+    [start, 1].concat(output));
   parent.parent.update(escodegen.generate(parent.parent));
 }
 

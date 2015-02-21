@@ -25,7 +25,6 @@ var fn2_parsed = '(function() {\n' +
 '    d = 5;\n' +
 '})()';
 
-
 var fn3 = '(' + function() {
   return m[e] && (m[e][t] && (n[0] = m[e][t][0]), m[e][t - 1] && (n[3] = m[e][t - 1][3])), m[e - 1] && (m[e - 1][t] && (n[1] = m[e - 1][t][1]), m[e - 1][t - 1] && (n[2] = m[e - 1][t - 1][2])), n
 } + ')()';
@@ -50,6 +49,16 @@ var fn3_parsed = '(function () {\n' +
 '    return n;\n' +
 '})()';
 
+var fn4 = '(function() {' +
+  'a = 1, b = 2, a += b;' +
+'})()';
+
+var fn4_parsed = '(function() {\n' +
+'    a = 1;\n' +
+'    b = 2;\n' +
+'    a += b;\n' +
+'})()';
+
 describe("jeb", function() {
   it("should parse standalone return statements with sequences", function() {
     var out = jeb(fn1 + '');
@@ -64,5 +73,10 @@ describe("jeb", function() {
   it("should parse return statements with sequences that have nested nodes", function() {
     var out = jeb(fn3 + '');
     assert.equal(out, fn3_parsed + '', 'parsed correctly');
+  });
+
+  it("should parse standalone sequences", function() {
+    var out = jeb(fn4 + '');
+    assert.equal(out, fn4_parsed + '', 'parsed correctly');
   });
 });
