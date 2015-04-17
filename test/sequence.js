@@ -1,5 +1,5 @@
 var assert = require('chai').assert,
-    jeb = require('../jeb');
+    jeb = require('../src/jeb');
 
 var fn1 = '(function() {' +
   'return a = 1, b = 2, a + b;' +
@@ -11,13 +11,13 @@ var fn1_parsed = '(function() {\n' +
 '    return a + b;\n' +
 '})()';
 
-var fn2 = '(function() {' +
-  'c = 4;' +
-  'return a = 1, b = 2, a + b;' +
-  'd = 5;' +
-'})()';
+var fn2 = '(' + function() {
+  c = 4;
+  return a = 1, b = 2, a + b;
+  d = 5;
+} + ')()';
 
-var fn2_parsed = '(function() {\n' +
+var fn2_parsed = '(function () {\n' +
 '    c = 4;\n' +
 '    a = 1;\n' +
 '    b = 2;\n' +
@@ -49,14 +49,24 @@ var fn3_parsed = '(function () {\n' +
 '    return n;\n' +
 '})()';
 
-var fn4 = '(function() {' +
-  'a = 1, b = 2, a += b;' +
-'})()';
+var fn4 = '(' + function() {
+  a = 1, b = 2, a += b;
+} + ')()';
 
-var fn4_parsed = '(function() {\n' +
+var fn4_parsed = '(function () {\n' +
 '    a = 1;\n' +
 '    b = 2;\n' +
 '    a += b;\n' +
+'})()';
+
+var fn5 = '(' + function() {
+  true, true, true;
+} + ')()';
+
+var fn5_parsed = '(function () {\n' +
+'    true;\n' +
+'    true;\n' +
+'    true;\n' +
 '})()';
 
 describe("jeb", function() {
@@ -78,5 +88,10 @@ describe("jeb", function() {
   it("should parse standalone sequences", function() {
     var out = jeb(fn4 + '');
     assert.equal(out, fn4_parsed + '', 'parsed correctly');
+  });
+
+  it("should wrap literal values in sequences", function() {
+    var out = jeb(fn5 + '');
+    assert.equal(out, fn5_parsed + '', 'parsed correctly');
   });
 });

@@ -6,7 +6,7 @@ var jeb = require('./jeb'),
   concat = require('concat-stream'),
   nopt = require('nopt'),
   shorthand,
-  options
+  options;
 
 options = {
   'help': Boolean
@@ -16,7 +16,7 @@ shorthand = {
   'h': ['--help']
 };
 
-module.exports = run
+module.exports = run;
 
 function help() {
 /*
@@ -25,11 +25,11 @@ jeb
   program on stdout.
 */
 
-  var str = help + ''
+  var str = help + '';
 
   process.stdout.write(
     str.slice(str.indexOf('/*') + 3, str.indexOf('*/'))
-  )
+  );
 }
 
 function run() {
@@ -51,6 +51,6 @@ function run() {
     source = data;
     source = jeb(source + '');
 
-    return process.stdout.write(source + '')
+    return process.stdout.write(source + '');
   }
 }

@@ -10,7 +10,7 @@ function run(data) {
   ];
 
   function parse(data) {
-    source = data
+    source = data;
 
     transform = parse_transform(
       require(transforms.shift()));
@@ -27,14 +27,19 @@ function run(data) {
     var target,
       result;
 
-    for(var i = 0, len = transform.length; i < len; ++i) {
-      if(target = transform[i][0](node)) {
-        result = transform[i][1].apply(
-          null,
-          Array.isArray(target) ? target : [target]);
+    for (var i = 0, len = transform.length; i < len; ++i) {
+      // Check if this nodes meets selector criteria.
+      target = transform[i].match(node);
+      // If so, process using transformation.
+      if (target) {
+        // Handle multiple matches.
+        if (Array.isArray(target)) {
+          target = target[0];
+        }
+        result = transform[i].transform(target);
 
         if(result === false) {
-          break
+          break;
         }
       }
     }
@@ -44,10 +49,10 @@ function run(data) {
     var output = [];
 
     for (var key in trans) {
-      output.push([
-        language(key),
-        trans[key]
-      ]);
+      output.push({
+        match: language(key),
+        transform: trans[key]
+      });
     }
 
     return output;

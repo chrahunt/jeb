@@ -1,5 +1,5 @@
 var assert = require('chai').assert,
-    jeb = require('../jeb');
+    jeb = require('../src/jeb');
 
 // Functions testing falafel-specific issues.
 // Force evaluation of for loop by putting in a sequenceexpression.
@@ -19,9 +19,37 @@ var fn1_parsed = '(function () {\n' +
 '    };\n' +
 '})()';
 
+var fn2 = '(' + function() {
+  true, function() {
+    true,
+    function() {
+      for (;;) {
+        true;
+      }
+    }();
+  }();
+} + ')()';
+
+var fn2_parsed = '(function () {\n' +
+'    true;\n' +
+'    (function () {\n' +
+'        true;\n' +
+'        (function () {\n' +
+'            for (;;) {\n' +
+'                true;\n' +
+'            }\n' +
+'        }());\n' +
+'    }());\n' +
+'})()';
+
 describe("jeb", function() {
   it("should handle for loops correctly", function() {
     var out = jeb(fn1 + '');
     assert.equal(out, fn1_parsed + '', 'parsed correctly');
+  });
+
+  it("should not break escodegen when using for loop with empty update field", function() {
+    var out = jeb(fn2 + '');
+    assert.equal(out, fn2_parsed + '', 'parsed correctly');
   });
 });
