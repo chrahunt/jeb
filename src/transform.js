@@ -234,9 +234,14 @@ function util_is_literal(node) {
   return node.type == "Literal";
 }
 
+function util_is_identifier(node) {
+  return node.type == "Identifier";
+}
+
 // Whether or not the given node should be wrapped if placed in a statement.
 function util_need_expr_wrap(node) {
-  return util_is_literal(node) || util_is_expr(node);
+  return util_is_literal(node) || util_is_expr(node) ||
+    util_is_identifier(node);
 }
 
 // Handle generic expression 

@@ -1,74 +1,65 @@
-var assert = require('chai').assert,
-    jeb = require('../src/jeb');
+var util = require('./helpers');
 
 // Functions testing falafel-specific issues.
-// Force evaluation of for loop by putting in a sequenceexpression.
-var fn1 = '(' + function() {
-  a = 1, b = function() {
-    if (a)
-      for (var c=0;c<b.a();c++) return;
-  };
-} + ')()';
 
-var fn1_parsed = '(function () {\n' +
-'    a = 1;\n' +
-'    b = function () {\n' +
-'        if (a)\n' +
-'            for (var c = 0; c < b.a(); c++)\n' +
-'                return;\n' +
-'    };\n' +
-'})()';
-
-var fn2 = '(' + function() {
-  true, function() {
+var tests = [{
+  // Force evaluation of for loop by putting in a sequenceexpression.
+  purpose: "should handle for loops correctly",
+  before: function() {
+    a = 1, b = function() {
+      if (a)
+        for (var c = 0; c < b.a(); c++) return;
+    };
+  },
+  after: function() {
+    a = 1;
+    b = function() {
+      if (a)
+        for (var c = 0; c < b.a(); c++)
+          return;
+    };
+  }
+}, {
+  purpose: "should not break escodegen when using for loop with empty update field",
+  before: function() {
     true,
     function() {
-      for (;;) {
-        true;
-      }
+      true,
+      function() {
+        for (;;) {
+          true;
+        }
+      }();
     }();
-  }();
-} + ')()';
+  },
+  after: function() {
+    true;
+    (function() {
+      true;
+      (function() {
+        for (;;) {
+          true;
+        }
+      }());
+    }());
+  }
+}, {
+  purpose: "should not overwrite the name field of an Identifier in a for loop",
+  before: function() {
+    a,
+    function() {
+      for (;; a) a
+    }();
+  },
+  after: function() {
+    a;
+    (function() {
+      for (;; a)
+        a;
+    }());
+  }
+}];
 
-var fn2_parsed = '(function () {\n' +
-'    true;\n' +
-'    (function () {\n' +
-'        true;\n' +
-'        (function () {\n' +
-'            for (;;) {\n' +
-'                true;\n' +
-'            }\n' +
-'        }());\n' +
-'    }());\n' +
-'})()';
-
-var fn3 = '(' + function() {
-  a, function() {
-    for (;;a) a
-  }();
-} + ')()';
-
-var fn3_parsed = '(function () {\n' +
-'    a\n' +
-'    (function () {\n' +
-'        for (;; a)\n' +
-'            a;\n' +
-'    }());\n' +
-'})()';
-
-describe("jeb", function() {
-  it("should handle for loops correctly", function() {
-    var out = jeb(fn1 + '');
-    assert.equal(out, fn1_parsed + '', 'parsed correctly');
-  });
-
-  it("should not break escodegen when using for loop with empty update field", function() {
-    var out = jeb(fn2 + '');
-    assert.equal(out, fn2_parsed + '', 'parsed correctly');
-  });
-
-  it("should not overwrite the name field of an Identifier in a for loop", function() {
-    var out = jeb(fn3 + '');
-    assert.equal(out, fn3_parsed + '', 'parsed correctly');
-  });
+describe("jeb's use of falafel", function() {
+  tests.forEach(util.run_test);
 });

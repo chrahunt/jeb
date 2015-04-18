@@ -11,6 +11,7 @@
     "nopt": "^3.0.1"
   },
   "devDependencies": {
+    "acorn": "^1.0.3",
     "chai": "^2.0.0"
   },
   "scripts": {
