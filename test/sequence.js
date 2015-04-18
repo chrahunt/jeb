@@ -69,6 +69,21 @@ var fn5_parsed = '(function () {\n' +
 '    true;\n' +
 '})()';
 
+var fn6 = '(' + function() {
+  a, b;
+  a, b;
+  a, b;
+} + ')()';
+
+var fn6_parsed = '(function () {\n' +
+'    a\n' +
+'    b\n' +
+'    a\n' +
+'    b\n' +
+'    a\n' +
+'    b\n' +
+'})()';
+
 describe("jeb", function() {
   it("should parse standalone return statements with sequences", function() {
     var out = jeb(fn1 + '');
@@ -93,5 +108,10 @@ describe("jeb", function() {
   it("should wrap literal values in sequences", function() {
     var out = jeb(fn5 + '');
     assert.equal(out, fn5_parsed + '', 'parsed correctly');
+  });
+
+  it("should handle multiple sequence statements in one body statement", function() {
+    var out = jeb(fn6 + '');
+    assert.equal(out, fn6_parsed + '', 'parsed correctly');
   });
 });

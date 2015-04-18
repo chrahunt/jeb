@@ -1,11 +1,39 @@
 var escodegen = require('escodegen');
 var name = require('./name');
+var language = require('cssauron-falafel');
 
+function parse_transform(trans) {
+  var output = [];
+
+  for (var key in trans) {
+    output.push({
+      // Function that takes a node and returns false if it doesn't
+      // match or a node/set of nodes if it does.
+      match: language(key),
+      // Function to pass matched nodes to for transformation.
+      transform: trans[key],
+      // Unique key for transformation.
+      id: key
+    });
+  }
+
+  return output;
+}
+
+var internal_transform = {
+  'expr': process_expr,
+  'return': process_return,
+  'return > sequence': process_return_sequence,
+  'expr > sequence': process_expr_sequence,
+  'expr > ternary': process_expr_ternary,
+  'expr > binary': process_expr_binary
+};
+
+var transforms = parse_transform(internal_transform);
+
+// Parent-level elements edited when children are changed.
 module.exports = {
-  'return > sequence': rewrite_return_sequence,
-  'expr > sequence': rewrite_expr_sequence,
-  'expr > ternary': rewrite_expr_ternary,
-  'expr > binary': rewrite_expr_binary
+  'block': rewrite_block_statement
 };
 
 // Takes a node and parses its relevant AST properly for output.
@@ -15,7 +43,8 @@ function ast_output(node) {
     'start',
     'end',
     'parent',
-    'source'
+    'source',
+    'rewrite'
   ];
   if (typeof node !== "object" && typeof node !== "function")
     return node;
@@ -23,9 +52,8 @@ function ast_output(node) {
   for (var prop in node) {
     if (bad.indexOf(prop) !== -1) continue;
     var val = node[prop];
-    
-    // Only keep update if it is a node.
-    if (prop == "update" && val && typeof val.type !== "string") continue;
+
+    // For 'body' property.
     if (val instanceof Array) {
       val = val.map(ast_output);
     } else if (val && val.type) {
@@ -37,13 +65,57 @@ function ast_output(node) {
 }
 
 function rewrite(node) {
-  node.update(escodegen.generate(ast_output(node)));
+  node.rewrite(escodegen.generate(ast_output(node)));
 }
 
-// Fix case where there is a sequence with a parent return statement.
-function rewrite_return_sequence(node) {
+// Handles block statements with parse-able children.
+function rewrite_block_statement(node) {
+  // Get the parse-able children of the block statement and run their
+  // relevant functions.
+  var edited = false;
+  var transformations = node.body.map(function(child) {
+    for (var i = 0; i < transforms.length; i++) {
+      if (transforms[i].match(child)) {
+        return function() {
+          return transforms[i].transform(child);
+        };
+      }
+    }
+  }).filter(function(fn) {
+    return typeof fn !== "undefined";
+  });
+  transformations.forEach(function(t) {
+    var result = t();
+    if (result) {
+      edited = true;
+    }
+  });
+  if (edited) {
+    rewrite(node);
+  }
+}
+
+function process_expr(node) {
+  var child = node.expression;
+  for (var i = 0; i < transforms.length; i++) {
+    if (transforms[i].match(child)) {
+      return transforms[i].transform(child);
+    }
+  }
+}
+
+function process_return(node) {
+  var child = node.argument;
+  if (!child) return;
+  for (var i = 0; i < transforms.length; i++) {
+    if (transforms[i].match(child)) {
+      return transforms[i].transform(child);
+    }
+  }
+}
+
+function process_return_sequence(node) {
   var parent = node.parent;
-  if (!check_context(parent)) return;
   var context = parent.parent.body;
   var start = context.indexOf(parent);
   var return_expr = node.expressions.pop();
@@ -54,12 +126,11 @@ function rewrite_return_sequence(node) {
     [start, 0].concat(output));
   // Rewrite return statement.
   parent.argument = return_expr;
-  rewrite(parent.parent);
+  return true;
 }
 
-function rewrite_expr_sequence(node) {
+function process_expr_sequence(node) {
   var parent = node.parent;
-  if (!check_context(parent)) return;
   var context = parent.parent.body;
   var start = context.indexOf(parent);
   // Put expressions into parent context.
@@ -67,28 +138,24 @@ function rewrite_expr_sequence(node) {
   ParseExpr[name[node.type]].call(null, node, output);
   Array.prototype.splice.apply(context,
     [start, 1].concat(output));
-  rewrite(parent.parent);
+  return true;
 }
 
-// Rewrite standalone short-circuit operators.
-function rewrite_expr_binary(node) {
+function process_expr_binary(node) {
   var parent = node.parent;
-  if (!check_context(parent)) return;
   var context = parent.parent.body;
   var start = context.indexOf(parent);
   context[start] = util_handle_arbitrary_expr(node);
-  rewrite(parent.parent);
+  return true;
 }
 
-function rewrite_expr_ternary(node) {
+function process_expr_ternary(node) {
   var parent = node.parent;
-  // Return if there's no good context to insert into.
-  if (!check_context(parent)) return;
   var context = parent.parent.body;
   var start = context.indexOf(parent);
   var generated = util_handle_arbitrary_expr(node);
   context[start] = generated;
-  rewrite(parent.parent);
+  return true;
 }
 
 /**

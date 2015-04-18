@@ -42,6 +42,20 @@ var fn2_parsed = '(function () {\n' +
 '    }());\n' +
 '})()';
 
+var fn3 = '(' + function() {
+  a, function() {
+    for (;;a) a
+  }();
+} + ')()';
+
+var fn3_parsed = '(function () {\n' +
+'    a\n' +
+'    (function () {\n' +
+'        for (;; a)\n' +
+'            a;\n' +
+'    }());\n' +
+'})()';
+
 describe("jeb", function() {
   it("should handle for loops correctly", function() {
     var out = jeb(fn1 + '');
@@ -51,5 +65,10 @@ describe("jeb", function() {
   it("should not break escodegen when using for loop with empty update field", function() {
     var out = jeb(fn2 + '');
     assert.equal(out, fn2_parsed + '', 'parsed correctly');
+  });
+
+  it("should not overwrite the name field of an Identifier in a for loop", function() {
+    var out = jeb(fn3 + '');
+    assert.equal(out, fn3_parsed + '', 'parsed correctly');
   });
 });
