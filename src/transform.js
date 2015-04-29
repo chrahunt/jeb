@@ -24,6 +24,7 @@ var internal_transform = {
   'expr': process_expr,
   'return': process_return,
   'return > sequence': process_return_sequence,
+  //'return > ternary': process_return_ternary,
   'expr > sequence': process_expr_sequence,
   'expr > ternary': process_expr_ternary,
   'expr > binary': process_expr_binary
@@ -33,7 +34,8 @@ var transforms = parse_transform(internal_transform);
 
 // Parent-level elements edited when children are changed.
 module.exports = {
-  'block': rewrite_block_statement
+  'block': rewrite_block_statement,
+  'root': rewrite_block_statement
 };
 
 // Takes a node and parses its relevant AST properly for output.
@@ -128,6 +130,22 @@ function process_return_sequence(node) {
   parent.argument = return_expr;
   return true;
 }
+
+function process_return_ternary(node) {
+  var parent = node.parent;
+  var context = parent.parent.body;
+  var start = context.indexOf(parent);
+  var return_expr = node.expressions.pop();
+  // Put expressions into parent context.
+  var output = [];
+  ParseExpr[name[node.type]].call(null, node, output);
+  Array.prototype.splice.apply(context,
+    [start, 0].concat(output));
+  // Rewrite return statement.
+  parent.argument = return_expr;
+  return true;
+}
+
 
 function process_expr_sequence(node) {
   var parent = node.parent;

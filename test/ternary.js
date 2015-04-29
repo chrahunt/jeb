@@ -44,6 +44,18 @@ var tests = [{
       a.b(c);
     }
   }
+}, {
+  purpose: "should parse ternary expressions in return statements",
+  before: function() {
+    return a === null ? b : a;
+  },
+  after: function() {
+    if (a === null) {
+      return a;
+    } else {
+      return b;
+    }
+  }
 }];
 
 describe("jeb ternary handling", function() {

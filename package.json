@@ -1,7 +1,7 @@
 {
-  "name": "js-extra-beautifier",
-  "version": "0.0.2",
-  "description": "Additional pre-organization for obfuscated/minified JS.",
+  "name": "jeb",
+  "version": "0.1.0",
+  "description": "Additional pre-processing for obfuscated/minified JS.",
   "main": "./src/jeb.js",
   "dependencies": {
     "concat-stream": "^1.4.7",
