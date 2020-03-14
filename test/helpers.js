@@ -35,6 +35,7 @@ function generate_code(data) {
 function run_test(test_data) {
   it(test_data.purpose, function() {
     var out = jeb(wrap_fn(test_data.before));
-    assert.equal(out, generate_code(test_data.after));
+    var normalized = escodegen.generate(parse(out));
+    assert.equal(normalized, generate_code(test_data.after));
   });
 }
